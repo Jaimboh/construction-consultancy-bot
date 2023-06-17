@@ -128,9 +128,7 @@ def agent():
             func=search_equipment,
             description="useful for when you need to search for construction equipment"
         )
-    ]
-
-        
+          
     ]
     prompt = CustomPromptTemplate(
         template=template,

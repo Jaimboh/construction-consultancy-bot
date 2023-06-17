@@ -100,7 +100,7 @@ def search_general(input_text):
     search = DuckDuckGoSearchRun().run(f"{input_text}")
     return search 
 
-@cl.langchain_factory
+@cl.langchain_factory(use_async=False)
 def agent():
     tools = [
         Tool(
@@ -148,3 +148,7 @@ def agent():
                                                     tools=tools,
                                                     verbose=True)
     return agent_executor
+
+
+# Create an instance of the agent_executor
+agent_executor = agent()

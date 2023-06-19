@@ -3,6 +3,7 @@ from langchain.agents import Tool, AgentExecutor, LLMSingleActionAgent, AgentOut
 from langchain.agents.agent import AgentAction, AgentFinish
 from langchain.prompts import StringPromptTemplate
 from langchain import LLMChain
+from pydantic import Field
 from langchain.chat_models import ChatOpenAI
 from langchain.tools import DuckDuckGoSearchRun
 from typing import List, Union
@@ -32,9 +33,7 @@ Final Answer: {Final AnswerTool}
 """
 
 class CustomPromptTemplate(StringPromptTemplate):
-    def __init__(self, template, tools, input_variables):
-        super().__init__(template=template, input_variables=input_variables)
-        self.tools = tools
+    tools: List[Tool] = Field(...)
     
     
     def format(self, **kwargs) -> str:

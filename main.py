@@ -1,5 +1,4 @@
 import streamlit as st
-from langchain.langchain import LangChain
 from langchain.agents import Tool, AgentExecutor, LLMSingleActionAgent, AgentOutputParser
 from langchain.agents.agent import AgentAction, AgentFinish
 from langchain.prompts import StringPromptTemplate
@@ -30,13 +29,13 @@ Action Input: Provide the input required for the chosen tool
 Observation: Describe the result obtained from the action
 ...(Repeat several times of the Thought/Action/Action Input/Observation as needed)
 Thought: Now I have the final answer!
+Final Answer: {Final AnswerTool}
 """
 
 class CustomPromptTemplate(StringPromptTemplate):
     template: str
     tools: List[Tool]
     input_variables: List[str]
-    
     def format(self, **kwargs) -> str:
         intermediate_steps = kwargs.pop("intermediate_steps")
         thoughts = ""
@@ -78,58 +77,54 @@ def search_general(input_text):
     return search
 
 @cl.langchain_factory(use_async=False)
-class ChatOpenAI(LangChain):
-    prompt_template_class = CustomPromptTemplate
-    output_parser_class = CustomOutputParser
-    
-    def __init__(self, agent_executor, **kwargs):
-        super().__init__(**kwargs)
-        self.agent_executor = agent_executor
-    
-    def __call__(self, query: str, **kwargs):
-        return self.agent_executor(query, **kwargs)
-
-def get_agent_executor():
-    return AgentExecutor(
-        ChatOpenAI(
-            os.environ.get("OPENAI_API_KEY", ""),
-            gpt3_model="gpt-3.5-turbo",
-            gpt3_model_owner="openai",
-            templates=[template],
-            tools=[
-                Tool(
-                    search_online,
-                    input_variables=["input_text"],
-                    description="Search online for information",
-                ),
-                Tool(
-                    search_equipment,
-                    input_variables=["input_text"],
-                    description="Search equipment listings",
-                ),
-                Tool(
-                    search_general,
-                    input_variables=["input_text"],
-                    description="Search in general",
-                ),
-            ],
+def agent():
+    tools = [
+        Tool(
+            name = "Search general",
+            func=search_general,
+            description="useful for when you need to answer general construction-related questions"
+        ),
+        Tool(
+            name = "Search construction",
+            func=search_online,
+            description="useful for when you need to search for construction-related information online"
+        ),
+        Tool(
+            name = "Search equipment",
+            func=search_equipment,
+            description="useful for when you need to search for construction equipment"
         )
+    ]
+    prompt = CustomPromptTemplate(
+        template=template,
+        tools=tools,
+        input_variables=["input", "intermediate_steps"]
     )
 
-async def main(query: str):
-    agent_executor = get_agent_executor()
-    agent = LLMSingleActionAgent(agent_executor)
-    async with agent as runner:
-        async for response in runner.iter_inferences([query]):
-            yield response
+    output_parser = CustomOutputParser()
+    llm = ChatOpenAI(temperature=0)
+    llm_chain = LLMChain(llm=llm, prompt=prompt)
+    tool_names = [tool.name for tool in tools]
 
-st.title("Construction Expert Chat")
+    agent = LLMSingleActionAgent(llm_chain=llm_chain, output_parser=output_parser, stop=["\nObservation:"], allowed_tools=tool_names)
+    agent_executor = AgentExecutor.from_agent_and_tools(agent=agent, tools=tools, verbose=True)
+    return agent_executor
 
-query = st.text_input("Ask a question:")
-if query:
-    result = asyncio.run(main(query))
-    response = result[0]
-    if isinstance(response, AgentAction):
-        st.write(response.tool)
-    elif isinstance(response, AgentFinish):
-        st.write(response.return_values["output"])
+# Create an instance of the agent_executor
+agent_executor = agent()
+
+# Streamlit app
+def main():
+    st.title("Construction Consultancy Bot👷‍♂️👷‍♀️🚧")
+    st.write("Ask construction-related questions and get expert advice!")
+
+    question = st.text_input("Enter your question:")
+    if st.button("Ask"):
+        if question:
+            response = agent_executor(question)
+            st.write(response["output"])
+        else:
+            st.write("Please enter a question.")
+
+if __name__ == "__main__":
+    main()

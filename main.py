@@ -77,7 +77,7 @@ def search_general(input_text):
     return search
 
 @cl.langchain_factory(use_async=False)
-class ChatOpenAI(LangChain):
+class ChatOpenAI(langChain):
     prompt_template_class = CustomPromptTemplate
     output_parser_class = CustomOutputParser
     

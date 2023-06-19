@@ -35,8 +35,7 @@ Final Answer: {Final AnswerTool}
 class CustomPromptTemplate(StringPromptTemplate):
     template: str
     tools: List[Tool]
-    
-    
+    input_variables: List[str]
     def format(self, **kwargs) -> str:
         intermediate_steps = kwargs.pop("intermediate_steps")
         thoughts = ""
@@ -48,9 +47,10 @@ class CustomPromptTemplate(StringPromptTemplate):
         kwargs["tool_names"] = ", ".join([tool.name for tool in self.tools])
         return self.template.format(**kwargs)
 
+
 class CustomOutputParser(AgentOutputParser):
     
-    def parse(self, llm_output: str) -> Union[AgentAction, AgentFinish]:
+    def parse(self,self, llm_output: str) -> Union[AgentAction, AgentFinish]:
         if "Final Answer:" in llm_output:
             return AgentFinish(
                 return_values={"output": llm_output.split("Final Answer:")[-1].strip()},

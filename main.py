@@ -8,16 +8,17 @@ from langchain.tools import DuckDuckGoSearchRun
 from typing import List, Union
 import re
 import os
+import chainlit as cl
 
 api_key = st.secrets["openai"]["api_key"]
 os.environ["OPENAI_API_KEY"] = api_key
-
 template = """
-# Construction Consultancy Bot :building_construction:
-
 Answer the following questions as best you can, but speaking as a passionate construction expert. You have access to the following tools:
+
 {tools}
+
 Use the following format:
+
 Question: The question you have to answer
 Thought: Your thought process in approaching the question
 Action: Choose one of the available tools in [{tool_names}] for your action
@@ -25,92 +26,100 @@ Action Input: Provide the input required for the chosen tool
 Observation: Describe the result obtained from the action
 ...(Repeat several times of the Thought/Action/Action Input/Observation as needed)
 Thought: Now I have the final answer!
-Final Answer: Provide your final answer from the perspective of an experienced construction professional
-
-Let's get started!
-
-Question: {input}
-{agent_scratchpad}
+Final Answer: {Final AnswerTool}
 """
 
 class CustomPromptTemplate(StringPromptTemplate):
-    # The template to use
-    template: str
-    # The list of tools available
-    tools: List[Tool]
     
     def format(self, **kwargs) -> str:
-        # Get the intermediate steps (AgentAction, Observation tuples)
-        # Format them in a particular way
         intermediate_steps = kwargs.pop("intermediate_steps")
         thoughts = ""
         for action, observation in intermediate_steps:
             thoughts += action.log
             thoughts += f"\nObservation: {observation}\nThought: "
-        # Set the agent_scratchpad variable to that value
         kwargs["agent_scratchpad"] = thoughts
-        # Create a tools variable from the list of tools provided
         kwargs["tools"] = "\n".join([f"{tool.name}: {tool.description}" for tool in self.tools])
-        # Create a list of tool names for the tools provided
         kwargs["tool_names"] = ", ".join([tool.name for tool in self.tools])
         return self.template.format(**kwargs)
 
 class CustomOutputParser(AgentOutputParser):
     
     def parse(self, llm_output: str) -> Union[AgentAction, AgentFinish]:
-        # Check if agent should finish
         if "Final Answer:" in llm_output:
             return AgentFinish(
-                # Return values is generally always a dictionary with a single `output` key
-                # It is not recommended to try anything else at the moment :)
                 return_values={"output": llm_output.split("Final Answer:")[-1].strip()},
                 log=llm_output,
             )
-        # Parse out the action and action input
-        regex = r"Action\s*\d*\s*:(.*?)\nAction\s*\d*\s*Input\s*\d*\s*:[\s]*(.*)"
+        regex = r"Action\s*\d*\s*:(.?)\nAction\s\d*\s*Input\s*\d*\s*:[\s](.)"
         match = re.search(regex, llm_output, re.DOTALL)
         if not match:
             raise ValueError(f"Could not parse LLM output: `{llm_output}`")
         action = match.group(1).strip()
         action_input = match.group(2)
-        # Return the action and action input
-        return AgentAction(tool=action, tool_input=action_input.strip())
+        return AgentAction(tool=action, tool_input=action_input.strip(" ").strip('"'), log=llm_output)
 
-# Set up the Streamlit app
-st.set_page_config(page_title="Construction Consultancy Bot", page_icon="🏗️")
-st.title("Construction Consultancy Bot")
+def search_online(input_text):
+    search = DuckDuckGoSearchRun().run(f"site:Americanbuildsupply.com {input_text}")
+    return search
 
-# Create a list of tools
-tools = [
-    DuckDuckGoSearchRun(),
-    DuckDuckGoSearchRun(),
-    DuckDuckGoSearchRun()
-]
+def search_equipment(input_text):
+    search = DuckDuckGoSearchRun().run(f"site:machinerytrader.com {input_text}")
+    return search
 
-# Create an instance of the LLMChain
-chain = LLMChain()
+def search_general(input_text):
+    search = DuckDuckGoSearchRun().run(f"{input_text}")
+    return search
 
-# Create an instance of the ChatOpenAI model
-model = ChatOpenAI()
+@cl.langchain_factory(use_async=False)
+def agent():
+    tools = [
+        Tool(
+            name = "Search general",
+            func=search_general,
+            description="useful for when you need to answer general construction-related questions"
+        ),
+        Tool(
+            name = "Search construction",
+            func=search_online,
+            description="useful for when you need to search for construction-related information online"
+        ),
+        Tool(
+            name = "Search equipment",
+            func=search_equipment,
+            description="useful for when you need to search for construction equipment"
+        )
+    ]
+    prompt = CustomPromptTemplate(
+        template=template,
+        tools=tools,
+        input_variables=["input", "intermediate_steps"]
+    )
 
-# Create an instance of the AgentExecutor
-executor = AgentExecutor(chain=chain, model=model)
+    output_parser = CustomOutputParser()
+    llm = ChatOpenAI(temperature=0)
+    llm_chain = LLMChain(llm=llm, prompt=prompt)
+    tool_names = [tool.name for tool in tools]
 
-# Set the custom prompt template and output parser
-executor.prompt_template = CustomPromptTemplate(template=template, tools=tools)
-executor.output_parser = CustomOutputParser()
+    agent = LLMSingleActionAgent(llm_chain=llm_chain, output_parser=output_parser, stop=["\nObservation:"], allowed_tools=tool_names)
+    agent_executor = AgentExecutor.from_agent_and_tools(agent=agent, tools=tools, verbose=True)
+    return agent_executor
 
-# Main interaction loop
-while True:
-    # Receive user input
-    user_input = st.text_input("User:", "")
+# Create an instance of the agent_executor
+agent_executor = agent()
 
-    # Break if user input is empty
-    if not user_input:
-        break
+# Streamlit app
+def main():
+    st.title("Construction Consultancy Bot")
+    st.write("Ask construction-related questions and get expert advice!")
 
-    # Generate the response
-    response = executor.execute(user_input)
+    question = st.text_input("Enter your question:")
+    if st.button("Ask"):
+        if question:
+            response = agent_executor.execute(input=question)
+            st.write(response["output"])
+        else:
+            st.write("Please enter a question.")
 
-    # Send the response to the user
-    st.text_area("Construction Consultancy Bot:", response.return_values["output"])
+if __name__ == "__main__":
+    main()
+

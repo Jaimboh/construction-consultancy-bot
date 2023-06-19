@@ -7,6 +7,8 @@ from langchain.chat_models import ChatOpenAI
 from langchain.tools import DuckDuckGoSearchRun
 from typing import List, Union
 import re
+import asyncio
+asyncio.set_event_loop(asyncio.new_event_loop())
 import os
 import chainlit as cl
 

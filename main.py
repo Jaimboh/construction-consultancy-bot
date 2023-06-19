@@ -50,7 +50,7 @@ class CustomPromptTemplate(StringPromptTemplate):
 
 class CustomOutputParser(AgentOutputParser):
     
-    def parse(self,self, llm_output: str) -> Union[AgentAction, AgentFinish]:
+    def parse(self, llm_output: str) -> Union[AgentAction, AgentFinish]:
         if "Final Answer:" in llm_output:
             return AgentFinish(
                 return_values={"output": llm_output.split("Final Answer:")[-1].strip()},

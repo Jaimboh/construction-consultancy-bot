@@ -1,4 +1,5 @@
 import streamlit as st
+from langchain.langchain import LangChain
 from langchain.agents import Tool, AgentExecutor, LLMSingleActionAgent, AgentOutputParser
 from langchain.agents.agent import AgentAction, AgentFinish
 from langchain.prompts import StringPromptTemplate
@@ -77,7 +78,7 @@ def search_general(input_text):
     return search
 
 @cl.langchain_factory(use_async=False)
-class ChatOpenAI(langChain):
+class ChatOpenAI(LangChain):
     prompt_template_class = CustomPromptTemplate
     output_parser_class = CustomOutputParser
     

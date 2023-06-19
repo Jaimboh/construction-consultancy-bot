@@ -111,13 +111,13 @@ agent_executor = agent()
 
 # Streamlit app
 def main():
-    st.title("Construction Consultancy Bot")
+    st.title("Construction Consultancy Bot👷‍♂️👷‍♀️🚧")
     st.write("Ask construction-related questions and get expert advice!")
 
     question = st.text_input("Enter your question:")
     if st.button("Ask"):
         if question:
-            response = agent_executor.execute(input=question)
+            response = agent_executor.execute_agent(input=question)
             st.write(response["output"])
         else:
             st.write("Please enter a question.")

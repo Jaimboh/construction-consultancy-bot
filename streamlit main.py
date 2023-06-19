@@ -8,7 +8,8 @@ from typing import List, Union
 import re
 import os
 
-os.environ["OPENAI_API_KEY"] = "{Your_API_Key}"
+api_key = st.secrets["openai"]["api_key"]
+os.environ["OPENAI_API_KEY"] = api_key
 
 template = """
 # Construction Consultancy Bot :building_construction:

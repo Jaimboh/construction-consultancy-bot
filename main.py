@@ -82,18 +82,9 @@ st.title("Construction Consultancy Bot")
 
 # Create a list of tools
 tools = [
-    DuckDuckGoSearchRun(
-        query_prompt="What is the process of {input}?",
-        result_prompt="According to my research, {output}.",
-    ),
-    DuckDuckGoSearchRun(
-        query_prompt="What are the main challenges in {input}?",
-        result_prompt="Based on my findings, the main challenges in {input} are {output}.",
-    ),
-    DuckDuckGoSearchRun(
-        query_prompt="What are the best practices for {input}?",
-        result_prompt="After studying the subject, I found that the best practices for {input} include {output}.",
-    ),
+    DuckDuckGoSearchRun(),
+    DuckDuckGoSearchRun(),
+    DuckDuckGoSearchRun()
 ]
 
 # Create an instance of the LLMChain

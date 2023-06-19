@@ -32,8 +32,7 @@ Final Answer: {Final AnswerTool}
 """
 
 class CustomPromptTemplate(StringPromptTemplate):
-    def __init__(template):
-        super().__init__(template)
+    
     
     def format(self, **kwargs) -> str:
         intermediate_steps = kwargs.pop("intermediate_steps")

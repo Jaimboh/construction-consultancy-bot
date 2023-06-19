@@ -117,7 +117,7 @@ def main():
     question = st.text_input("Enter your question:")
     if st.button("Ask"):
         if question:
-            response = agent_executor.execute_agent(input=question)
+            response = agent_executor(input=question)
             st.write(response["output"])
         else:
             st.write("Please enter a question.")

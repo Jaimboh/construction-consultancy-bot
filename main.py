@@ -32,6 +32,9 @@ Final Answer: {Final AnswerTool}
 """
 
 class CustomPromptTemplate(StringPromptTemplate):
+    def __init__(self, template, tools, input_variables):
+        super().__init__(template=template, input_variables=input_variables)
+        self.tools = tools
     
     
     def format(self, **kwargs) -> str:

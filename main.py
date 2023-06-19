@@ -1,6 +1,6 @@
 import streamlit as st
 from langchain.agents import Tool, AgentExecutor, LLMSingleActionAgent, AgentOutputParser
-from langchain.agents import AgentAction, AgentFinish
+from langchain.agents.agent import AgentAction, AgentFinish
 from langchain.prompts import StringPromptTemplate
 from langchain import LLMChain
 from langchain.chat_models import ChatOpenAI

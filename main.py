@@ -33,7 +33,8 @@ Final Answer: {Final AnswerTool}
 """
 
 class CustomPromptTemplate(StringPromptTemplate):
-    tools: List[Tool] = Field(...)
+    template: str
+    tools: List[Tool]
     
     
     def format(self, **kwargs) -> str:
